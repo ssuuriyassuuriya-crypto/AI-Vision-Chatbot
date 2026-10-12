@@ -46,7 +46,7 @@ if not api_key:
     st.stop()
 
 client = genai.Client(api_key=api_key)
-MODEL = "gemini-3.7-flash"
+MODEL = "gemini-2.5-flash"
 
 if "image_bytes" not in st.session_state:
     st.session_state.image_bytes = None
