@@ -1,3 +1,4 @@
+
 import os
 from io import BytesIO
 
@@ -14,19 +15,40 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-.block-container {max-width: 1000px; padding-top: 2rem;}
-.hero {padding: 1.5rem 1.5rem 1.2rem; border-radius: 20px; background: linear-gradient(135deg,#111827,#312e81); color: white; margin-bottom: 1rem;}
-.hero h1 {margin-bottom: .35rem;}
-.hero p {margin: 0; opacity: .9;}
-.badge {display:inline-block; padding:.25rem .65rem; border-radius:999px; background:#ffffff22; font-size:.8rem; margin-bottom:.5rem;}
+.block-container {
+    max-width: 1000px;
+    padding-top: 2rem;
+}
+.hero {
+    padding: 1.5rem 1.5rem 1.2rem;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #111827, #312e81);
+    color: white;
+    margin-bottom: 1rem;
+}
+.hero h1 {
+    margin-bottom: .35rem;
+}
+.hero p {
+    margin: 0;
+    opacity: .9;
+}
+.badge {
+    display: inline-block;
+    padding: .25rem .65rem;
+    border-radius: 999px;
+    background: #ffffff22;
+    font-size: .8rem;
+    margin-bottom: .5rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("""
 <div class="hero">
-  <div class="badge">🚀 AI Vision Chatbot</div>
-  <h1>See it. Understand it. Chat about it.</h1>
-  <p>Upload an image and ask Gemini questions about what it sees.</p>
+    <div class="badge">🚀 AI Vision Chatbot</div>
+    <h1>See it. Understand it. Chat about it.</h1>
+    <p>Upload an image and ask Gemini questions about what it sees.</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -37,26 +59,36 @@ def get_api_key():
             return st.secrets["GEMINI_API_KEY"]
     except Exception:
         pass
+
     return os.getenv("GEMINI_API_KEY")
 
 
 api_key = get_api_key()
+
 if not api_key:
-    st.warning("Add your Gemini API key to continue. See the README for setup steps.")
+    st.warning(
+        "Add your Gemini API key to continue. "
+        "See the README for setup steps."
+    )
     st.stop()
 
 client = genai.Client(api_key=api_key)
-MODEL = "gemini-3.8-flash"
+
+# Use a model ID supported by your Gemini API account.
+MODEL = "gemini-2.5-flash"
 
 if "image_bytes" not in st.session_state:
     st.session_state.image_bytes = None
+
 if "mime_type" not in st.session_state:
     st.session_state.mime_type = None
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 with st.sidebar:
     st.header("📷 Image")
+
     uploaded = st.file_uploader(
         "Upload an image",
         type=["jpg", "jpeg", "png", "webp"],
@@ -65,14 +97,24 @@ with st.sidebar:
 
     if uploaded is not None:
         new_bytes = uploaded.getvalue()
+
         if new_bytes != st.session_state.image_bytes:
             st.session_state.image_bytes = new_bytes
-            st.session_state.mime_type = uploaded.type or "image/jpeg"
+            st.session_state.mime_type = (
+                uploaded.type or "image/jpeg"
+            )
             st.session_state.messages = []
 
     if st.session_state.image_bytes:
-        preview = Image.open(BytesIO(st.session_state.image_bytes))
-        st.image(preview, caption="Current image", use_container_width=True)
+        preview = Image.open(
+            BytesIO(st.session_state.image_bytes)
+        )
+        st.image(
+            preview,
+            caption="Current image",
+            use_container_width=True,
+        )
+
         if st.button("🗑️ Clear image", use_container_width=True):
             st.session_state.image_bytes = None
             st.session_state.mime_type = None
@@ -81,16 +123,14 @@ with st.sidebar:
 
     st.divider()
     st.caption("Model: Gemini multimodal vision")
-    st.caption("Tip: Ask specific questions such as ‘What objects are visible?’ or ‘Describe the scene.’")
+    st.caption(
+        "Tip: Ask specific questions such as "
+        "'What objects are visible?' or 'Describe the scene.'"
+    )
 
 if not st.session_state.image_bytes:
     st.info("👈 Upload an image from the sidebar to start.")
     st.stop()
-
-# Display existing chat history.
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
 
 
 def ask_vision_model(question: str) -> str:
@@ -104,24 +144,20 @@ def ask_vision_model(question: str) -> str:
         for m in st.session_state.messages[-8:]
     )
 
-    
-prompt = f"""
+    prompt = f"""
 You are a helpful AI vision assistant.
 
-Look carefully at the uploaded image and answer the user's question
-based on what is actually visible.
+Look carefully at the uploaded image and answer the user's
+question based on what is actually visible.
 
 Rules:
 - Focus on the main subject or object in the image.
-- Answer the user's question directly before giving extra details.
-- If the image is a screenshot, distinguish its main content from
-  phone status bars, browser controls, buttons, and keyboards.
-- Do not describe interface elements unless the user asks about them
-  or they are relevant to the question.
+- Answer the user's question directly.
+- Distinguish screenshot content from phone interface elements.
 - Do not guess or invent details.
 - If something is unclear, say so honestly.
 - Keep answers clear, natural, and concise.
-- Use conversation history only when it is relevant.
+- Use conversation history only when relevant.
 
 Conversation so far:
 {history_text or '(none)'}
@@ -130,16 +166,25 @@ USER'S NEW QUESTION:
 {question}
 """
 
-
     response = client.models.generate_content(
         model=MODEL,
         contents=[image_part, prompt],
     )
-    return response.text or "I couldn't generate a text response for that question."
+
+    return response.text or "I couldn't generate an answer."
+
+
+# Display existing chat history.
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
 
 if prompt := st.chat_input("Ask something about the image…"):
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.messages.append(
+        {"role": "user", "content": prompt}
+    )
+
     with st.chat_message("user"):
         st.markdown(prompt)
 
@@ -147,11 +192,17 @@ if prompt := st.chat_input("Ask something about the image…"):
         with st.spinner("👁️ Looking at the image…"):
             try:
                 answer = ask_vision_model(prompt)
-            except Exception as exc:
-                answer = f"Sorry, I couldn't analyze the image right now.\n\nError: `{exc}`"
+            except Exception:
+                answer = (
+                    "Sorry, I couldn't analyze the image right now. "
+                    "Please check your API key, model ID, and connection."
+                )
+
         st.markdown(answer)
 
-    st.session_state.messages.append({"role": "assistant", "content": answer})
+    st.session_state.messages.append(
+        {"role": "assistant", "content": answer}
+    )
 
 st.divider()
 st.caption("Built with Streamlit + Google Gemini multimodal AI")
