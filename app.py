@@ -104,12 +104,24 @@ def ask_vision_model(question: str) -> str:
         for m in st.session_state.messages[-8:]
     )
 
-    prompt = f"""
-You are an AI vision assistant.
-Analyze the uploaded image carefully and answer the user's question.
-Be accurate and do not invent details that are not visible.
-If something is uncertain, say so.
-Keep answers clear and useful.
+    
+prompt = f"""
+You are a helpful AI vision assistant.
+
+Look carefully at the uploaded image and answer the user's question
+based on what is actually visible.
+
+Rules:
+- Focus on the main subject or object in the image.
+- Answer the user's question directly before giving extra details.
+- If the image is a screenshot, distinguish its main content from
+  phone status bars, browser controls, buttons, and keyboards.
+- Do not describe interface elements unless the user asks about them
+  or they are relevant to the question.
+- Do not guess or invent details.
+- If something is unclear, say so honestly.
+- Keep answers clear, natural, and concise.
+- Use conversation history only when it is relevant.
 
 Conversation so far:
 {history_text or '(none)'}
@@ -117,6 +129,7 @@ Conversation so far:
 USER'S NEW QUESTION:
 {question}
 """
+
 
     response = client.models.generate_content(
         model=MODEL,
